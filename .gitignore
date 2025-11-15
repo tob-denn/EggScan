@@ -1,0 +1,25 @@
+# macOS Finder metadata
+.DS_Store
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments
+venv/
+env/
+
+# Systemd (ska inte ligga i git)
+eggscan.service
+
+# Local databases (användaren genererar sin egen)
+*.db
+
+# Installer-generated secrets
+secret_key.txt
+
+# Build artifacts (om du skapar framtida paket)
+build/
+dist/
+*.egg-info/
