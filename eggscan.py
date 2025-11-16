@@ -634,7 +634,7 @@ def run_periodic_scan():
 #          ROUTES
 # ---------------------------
 
-from flask import session  # still ok
+from flask import session
 
 
 @app.route("/setup", methods=["GET", "POST"])
@@ -1036,7 +1036,7 @@ def config_eggscan():
 
 
 # ---------------------------
-#       TEMPLATES 
+#       TEMPLATES
 # ---------------------------
 
 INDEX_TEMPLATE = """
@@ -1074,40 +1074,34 @@ INDEX_TEMPLATE = """
         border: 1px solid #374151;
         margin-left: 0.5rem;
     }
-.status-badge-online {
-    display: inline-block;
-    padding: 0.2rem 0.6rem;
-    border-radius: 999px;
-    background-color: #16a34a;
-    color: #ecfdf5;
-    font-size: 0.8rem;
-}
+    .status-badge-online {
+        display: inline-block;
+        padding: 0.2rem 0.6rem;
+        border-radius: 999px;
+        background-color: #16a34a;
+        color: #ecfdf5;
+        font-size: 0.8rem;
+    }
 
-.status-badge-offline {
-    display: inline-block;
-    padding: 0.2rem 0.6rem;
-    border-radius: 999px;
-    background-color: #374151;
-    color: #e5e7eb;
-    font-size: 0.8rem;
-}
+    .status-badge-offline {
+        display: inline-block;
+        padding: 0.2rem 0.6rem;
+        border-radius: 999px;
+        background-color: #374151;
+        color: #e5e7eb;
+        font-size: 0.8rem;
+    }
 
-/* Header-rad i tabellen (IP / MAC / Alias / ...) */
-.table-dark-header {
-    background-color: #111827;
-}
+    .table-dark-header {
+        background-color: #111827;
+    }
 
-.table-dark-header th {
-    background-color: #111827;
-    border-color: #1f2933;
-    color: #ffffff !important;  /* tvinga vit text */
-}
+    .table-dark-header th {
+        background-color: #111827;
+        border-color: #1f2933;
+        color: #ffffff !important;
+    }
 
-
-.table-dark-body tbody tr {
-    background-color: #020617;
-    color: #e5e7eb;
-}
     .table-dark-body tbody tr {
         background-color: #020617;
         color: #e5e7eb;
@@ -1150,6 +1144,13 @@ INDEX_TEMPLATE = """
     }
     .card-body {
         background-color: #020617;
+    }
+
+    .ip-modal-list-item {
+        background-color: #ffffff;  /* vit bakgrund */
+        color: #000000;             /* svart text */
+        border-color: #e5e7eb;      /* lite ljus kant */
+        font-weight: 500;           /* gör texten lite tydligare */
     }
     </style>
 </head>
@@ -1273,7 +1274,22 @@ INDEX_TEMPLATE = """
             {% endif %}
 
             <tr class="{{ row_class }}">
-                <td class="align-middle">{{ dev.ip_address or "-" }}</td>
+                <td class="align-middle">
+                    {% if dev.ip_address and dev.ip_address != "-" %}
+                        {% set ip_list = dev.ip_address.split(",") %}
+                        {{ ip_list[0] | trim }}
+                        {% if ip_list|length > 1 %}
+                            <button type="button"
+                                    class="btn btn-link btn-sm p-0 ml-1"
+                                    data-toggle="modal"
+                                    data-target="#ipModal{{ dev.id }}">
+                                (+{{ ip_list|length - 1 }} more)
+                            </button>
+                        {% endif %}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
                 <td class="align-middle"><code class="text-light">{{ dev.mac_address or "N/A" }}</code></td>
                 <td class="align-middle">
                     {% if dev.alias %}
@@ -1321,7 +1337,7 @@ INDEX_TEMPLATE = """
                 <form method="POST" action="{{ url_for('update_alias') }}">
                     <div class="modal-content">
                       <div class="modal-header">
-                        <h5 class="modal-title" id="aliasModalLabel{{ dev.id }}">{{ t("ALIAS_MODAL_TITLE") }}</h5>
+                        <h5 class="modal-title text-dark" id="aliasModalLabel{{ dev.id }}">{{ t("ALIAS_MODAL_TITLE") }}</h5>
                         <button type="button" class="close" data-dismiss="modal" aria-label="Stäng">
                           <span aria-hidden="true">&times;</span>
                         </button>
@@ -1330,7 +1346,7 @@ INDEX_TEMPLATE = """
                             <input type="hidden" name="mac" value="{{ dev.mac_address }}">
                             <div class="form-group">
                                 <label for="aliasInput{{ dev.id }}">{{ t("ALIAS_LABEL") }}</label>
-                                <input type="text" class="form-control" id="aliasInput{{ dev.id }}" name="alias"
+                                <input type="text" class="form-control text-dark" id="aliasInput{{ dev.id }}" name="alias"
                                        value="{{ dev.alias or '' }}" placeholder="{{ t('ALIAS_LABEL') }}">
                             </div>
                       </div>
@@ -1343,13 +1359,43 @@ INDEX_TEMPLATE = """
               </div>
             </div>
 
+            {% if dev.ip_address and dev.ip_address != "-" %}
+            <div class="modal fade" id="ipModal{{ dev.id }}" tabindex="-1" role="dialog" aria-labelledby="ipModalLabel{{ dev.id }}" aria-hidden="true">
+              <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title text-dark" id="ipModalLabel{{ dev.id }}">
+                      IP addresses for {{ dev.alias or dev.mac_address }}
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                  <div class="modal-body">
+                    {% set all_ips = dev.ip_address.split(",") %}
+                    <ul class="list-group">
+                      {% for addr in all_ips %}
+<li class="list-group-item ip-modal-list-item">
+  {{ addr | trim }}
+</li>
+                      {% endfor %}
+                    </ul>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+
           {% endfor %}
           </tbody>
         </table>
       </div>
 
       <footer class="text-right">
-        {{ t("INDEX_TITLE") }} – {{ t("VERSION_LABEL") }} {{ version }}
+        {{ t("INDEX_TITLE") }} - {{ t("VERSION_LABEL") }} {{ version }}
       </footer>
     </div>
   </div>
@@ -1398,7 +1444,7 @@ SETUP_TEMPLATE = """
 <html lang="{{ 'sv' if lang == 'sv' else 'en' }}">
 <head>
     <meta charset="UTF-8">
-    <title>{{ t("SETUP_TITLE") }} – {{ t("INDEX_TITLE") }} v{{ version }}</title>
+    <title>{{ t("SETUP_TITLE") }} - {{ t("INDEX_TITLE") }} v{{ version }}</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <style>
     body {
@@ -1480,7 +1526,7 @@ LOGIN_TEMPLATE = """
 <html lang="{{ 'sv' if lang == 'sv' else 'en' }}">
 <head>
     <meta charset="UTF-8">
-    <title>{{ t("LOGIN_TITLE") }} – {{ t("INDEX_TITLE") }} v{{ version }}</title>
+    <title>{{ t("LOGIN_TITLE") }} - {{ t("INDEX_TITLE") }} v{{ version }}</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <style>
     body {
@@ -1562,7 +1608,7 @@ CHANGE_PASSWORD_TEMPLATE = """
 <html lang="{{ 'sv' if lang == 'sv' else 'en' }}">
 <head>
     <meta charset="UTF-8">
-    <title>{{ t("CHANGE_PASSWORD_TITLE") }} – {{ t("INDEX_TITLE") }} v{{ version }}</title>
+    <title>{{ t("CHANGE_PASSWORD_TITLE") }} - {{ t("INDEX_TITLE") }} v{{ version }}</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <style>
     body {
@@ -1623,7 +1669,7 @@ MANAGE_USERS_TEMPLATE = """
 <html lang="{{ 'sv' if lang == 'sv' else 'en' }}">
 <head>
     <meta charset="UTF-8">
-    <title>{{ t("MANAGE_USERS_TITLE") }} – {{ t("INDEX_TITLE") }} v{{ version }}</title>
+    <title>{{ t("MANAGE_USERS_TITLE") }} - {{ t("INDEX_TITLE") }} v{{ version }}</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <style>
     body {
@@ -1719,7 +1765,7 @@ CONFIG_TEMPLATE = """
 <html lang="{{ 'sv' if lang == 'sv' else 'en' }}">
 <head>
     <meta charset="UTF-8">
-    <title>{{ t("CONFIG_TITLE") }} – {{ t("INDEX_TITLE") }} v{{ version }}</title>
+    <title>{{ t("CONFIG_TITLE") }} - {{ t("INDEX_TITLE") }} v{{ version }}</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <style>
     body {
@@ -1841,7 +1887,7 @@ CONFIG_TEMPLATE = """
       </form>
 
       <div class="mt-4 text-muted">
-        <small>{{ t("INDEX_TITLE") }} – {{ t("VERSION_LABEL") }} {{ version }}</small>
+        <small>{{ t("INDEX_TITLE") }} - {{ t("VERSION_LABEL") }} {{ version }}</small>
       </div>
     </div>
   </div>
