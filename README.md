@@ -11,8 +11,18 @@ EGGSCAN IS A HOBBY PROJECT. NOT INTENDED FOR ENTERPRISE OR SECURITY-CRITICAL USE
 DO NOT EXPOSE EGGSCAN TO THE PUBLIC INTERNET.
 NO HARDENING, NO HTTPS, NO PRODUCTION-GRADE AUTH.
 
+<details>
 
-Features
+<summary><strong> Screenshots </strong> ⬇</summary>
+
+
+Comming soon
+
+</details>
+
+<details>
+  
+<summary><strong> Features </strong> ⬇</summary>
 
 - Fast local network scanning (ARP + Nmap)
 - Web interface (Flask)
@@ -25,10 +35,10 @@ Features
 - Versioning via version.json
 - No cloud backend – all scan data stays on your LAN
 
+</details>
 
-
-
-Installation (Debian/Ubuntu)
+<details>
+<summary><strong> Installation (Debian/Ubuntu) </strong> ⬇</summary>
 
 Supported Debian-based systems:
 Ubuntu
@@ -38,10 +48,10 @@ Linux Mint
 Other Debian derivatives
 
 Run:
-
+```
 chmod +x install_eggscan.sh
 sudo ./install_eggscan.sh
-
+```
 The installer will:
 
 Check system requirements
@@ -57,7 +67,10 @@ After installation, open:
 
 http://<your_local_ip>:5000
 
-Python dependencies
+</details>
+
+<details>
+<summary><strong> Python dependencies </strong> ⬇</summary>
 
 Listed in requirements.txt:
 Flask
@@ -66,13 +79,19 @@ Flask-Login
 Flask-Bcrypt
 python-nmap
 
-Manual install:
+</details>
+<details>
+<summary><strong> Manual install </strong> ⬇</summary>
 
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
-Installation on other Linux systems (Arch, Fedora, etc.)
+</details>
+
+<details>
+<summary><strong> Installation on other Linux systems (Arch, Fedora, etc.) </strong> ⬇</summary>
+
 
 No automatic installer is provided.
 
@@ -92,10 +111,11 @@ a systemd service file
 a directory structure under /opt/eggscan
 
 For advanced users only.
+</details>
 
+<details>
+<summary><strong> Uninstallation </strong> ⬇</summary>
 
-
-Uninstallation
 
 To remove EggScan manually, delete:
 
@@ -110,7 +130,10 @@ sudo systemctl stop eggscan.service
 sudo systemctl disable eggscan.service
 sudo systemctl daemon-reload
 
-Security Notes
+</details>
+<details>
+<summary><strong> Security Notes </strong> ⬇</summary>
+
 
 EggScan is intended for home LAN usage only.
 
@@ -129,9 +152,9 @@ HTTPS/TLS
 
 Do not expose EggScan directly to the internet.
 
-
-
-License
+</details>
+<details>
+<summary><strong> License </strong> ⬇</summary>
 
 EggScan is released under the GNU General Public License version 3 (GPL-3.0).
 
@@ -142,17 +165,17 @@ Modified versions must remain under GPL-3.0
 You must keep copyright and attribution
 You may not close the source and sell it as proprietary software
 
-
-
-Disclaimer
+</details>
+<details>
+<summary><strong> Disclaimer </strong> ⬇</summary>
 
 EggScan is provided as is, without warranty.
 Use at your own risk.
 
-
-
-Credits
+</details>
+<details>
+<summary><strong> Credits </strong> ⬇</summary>
 
 Created by MRsnoken.
 Network discovery powered by Nmap and public OUI data.
-
+</details>
