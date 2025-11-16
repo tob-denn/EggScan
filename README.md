@@ -12,18 +12,19 @@ DO NOT EXPOSE EGGSCAN TO THE PUBLIC INTERNET.
 NO HARDENING, NO HTTPS, NO PRODUCTION-GRADE AUTH.
 
 
-
 Features
 
-Fast local network scanning (ARP + Nmap)
-Web interface (Flask)
-Device list with IP, MAC, vendor lookup
-Alias naming for devices
-Online/offline/new indicators
-SQLite database storage
-Runs as a systemd service
-Versioning via version.json
-Fully offline, no cloud dependencies
+- Fast local network scanning (ARP + Nmap)
+- Web interface (Flask)
+- Device list with IP, MAC, vendor lookup
+- IPv4 and IPv6 address discovery (via neighbor scans)
+- Alias naming for devices
+- Online/offline/new indicators
+- SQLite database storage
+- Runs as a systemd service
+- Versioning via version.json
+- No cloud backend – all scan data stays on your LAN
+
 
 
 
