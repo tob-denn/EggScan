@@ -14,9 +14,31 @@ NO HARDENING, NO HTTPS, NO PRODUCTION-GRADE AUTH.
 <details>
 
 <summary><strong> Screenshots </strong> ⬇</summary>
+<strong>Setup Admin </strong>
+
+<img width="2138" height="970" alt="SetupAdmin" src="https://github.com/user-attachments/assets/cd8741bd-fcfd-4721-9481-85c070a62855" />
+
+<br> <br>
+<strong> Login </strong>
+<img width="2134" height="968" alt="Login" src="https://github.com/user-attachments/assets/d8de2db6-b0e1-44a4-ac2f-99d089a3701a" />
+<br><br>
+<strong>Dashboard</strong>
+<img width="1680" height="1010" alt="DeviceDashboard" src="https://github.com/user-attachments/assets/b13ce9d3-a3ee-4f92-b7ea-f0069c45d093" />
+<br><br>
+<strong>Update Alias</strong>
 
 
-Comming soon
+<img width="492" height="247" alt="Alias" src="https://github.com/user-attachments/assets/8028fe28-12fb-4967-917d-9aa98d8de705" />
+
+<br><br> 
+  <strong>  Network </strong> 
+<img width="1112" height="753" alt="NetworkSettings" src="https://github.com/user-attachments/assets/c423cf77-8305-48bb-b6ed-184981f301b5" />
+<br><br>
+   <strong>   Manage Users </strong>
+
+<img width="691" height="277" alt="Manage Users" src="https://github.com/user-attachments/assets/0ec37e1b-476c-46c0-b599-f1cf816b61e2" />
+
+
 
 </details>
 
