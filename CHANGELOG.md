@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.0.2] – 2025-11-19
+### Changed
+- Updated IP handling: device IP lists are now rebuilt on each scan, ensuring only addresses detected in the latest scan are stored.
+- Replaced checkbox controls with modern toggle switches for a cleaner and more consistent UI.
+
 ## [v1.0.1] – 2025-11-16
 ### Changed
 - Added modal dialog for devices with multiple IP addresses (IPv4/IPv6).
