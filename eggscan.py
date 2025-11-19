@@ -508,8 +508,12 @@ def nmap_scan_and_save():
 
     existing_devices = {d.mac_address.lower(): d for d in Device.query.all()}
     ipv6_enabled = (get_setting("ipv6_enabled", "false") == "true")
+
+    # Här samlar vi *endast* IP:na som hittas i den här skanningen
+    scan_ips_per_mac = {}
     found_macs_this_scan = set()
 
+    # ---- IPv4-skanning (nmap) ----
     for sn in subnets:
         cidr = sn.cidr.strip()
         if not cidr:
@@ -525,22 +529,16 @@ def nmap_scan_and_save():
                     mac_lower = mac.lower()
                     manufacturer = info.get("vendor", {}).get(mac, None)
 
+                    # Lägg till IPv4-adressen i "denna skanning"-listan
+                    if mac_lower not in scan_ips_per_mac:
+                        scan_ips_per_mac[mac_lower] = set()
+                    scan_ips_per_mac[mac_lower].add(host)
+
                     if mac_lower in existing_devices:
                         dev = existing_devices[mac_lower]
-                        old_ips = dev.ip_address if dev.ip_address else ""
-                        if old_ips.strip("-") == "":
-                            new_ips = host
-                        else:
-                            if host not in [x.strip() for x in old_ips.split(",")]:
-                                new_ips = old_ips + "," + host
-                            else:
-                                new_ips = old_ips
-                        dev.ip_address = new_ips
-
                         if manufacturer:
                             dev.manufacturer = manufacturer
                         dev.last_seen_scan = current_scan_id
-                        found_macs_this_scan.add(mac_lower)
                     else:
                         new_dev = Device(
                             ip_address=host,
@@ -551,32 +549,33 @@ def nmap_scan_and_save():
                         )
                         db.session.add(new_dev)
                         existing_devices[mac_lower] = new_dev
-                        found_macs_this_scan.add(mac_lower)
+
+                    found_macs_this_scan.add(mac_lower)
             else:
+                # IPv6-nät i SubNetwork ignoreras avsiktligt här (hanteras via neighbor discovery)
                 pass
         except Exception as e:
             print(f"Fel vid scanning av subnät {cidr}: {e}")
 
     db.session.commit()
 
+    # ---- IPv6-skanning (neighbor discovery) ----
     if ipv6_enabled:
         v6_map = discover_ipv6_neighbors()
 
         for mac_lower, ipv6_list in v6_map.items():
             if not ipv6_list:
                 continue
+
+            # Lägg IPv6-adresser i "denna skanning"-listan
+            if mac_lower not in scan_ips_per_mac:
+                scan_ips_per_mac[mac_lower] = set()
+            for ip6 in ipv6_list:
+                scan_ips_per_mac[mac_lower].add(ip6)
+
             if mac_lower in existing_devices:
                 dev = existing_devices[mac_lower]
-                old_ips = dev.ip_address if dev.ip_address else ""
-                combined = set(x.strip() for x in old_ips.split(",") if x.strip() and x.strip() != "-")
-                for ip6 in ipv6_list:
-                    combined.add(ip6)
-                if combined:
-                    dev.ip_address = ",".join(sorted(combined))
-                else:
-                    dev.ip_address = "-"
                 dev.last_seen_scan = current_scan_id
-                found_macs_this_scan.add(mac_lower)
             else:
                 new_dev = Device(
                     ip_address=",".join(ipv6_list),
@@ -587,15 +586,29 @@ def nmap_scan_and_save():
                 )
                 db.session.add(new_dev)
                 existing_devices[mac_lower] = new_dev
-                found_macs_this_scan.add(mac_lower)
+
+            found_macs_this_scan.add(mac_lower)
 
         db.session.commit()
 
+    # ---- Sätt ip_address baserat *bara* på denna skanning ----
+    for mac_lower, dev in existing_devices.items():
+        if dev.last_seen_scan == current_scan_id:
+            addr_set = scan_ips_per_mac.get(mac_lower, set())
+            if addr_set:
+                # sort() bara för stabil, snygg ordning
+                dev.ip_address = ",".join(sorted(addr_set))
+            else:
+                dev.ip_address = "-"
+    db.session.commit()
+
+    # ---- Markera offline-enheter (inte hittade i denna skanning) ----
     offline_devs = Device.query.filter(Device.last_seen_scan != current_scan_id).all()
     for d in offline_devs:
         d.ip_address = "-"
     db.session.commit()
 
+    # ---- Om IPv6 är avstängt: ta bort ev. IPv6-adresser (samma som din originalkod) ----
     if not ipv6_enabled:
         all_devs = Device.query.all()
         for d in all_devs:
@@ -616,7 +629,6 @@ def nmap_scan_and_save():
         db.session.commit()
 
     set_setting("scan_status", "done")
-
 
 def run_periodic_scan():
     while True:
@@ -1147,11 +1159,63 @@ INDEX_TEMPLATE = """
     }
 
     .ip-modal-list-item {
-        background-color: #ffffff;  /* vit bakgrund */
-        color: #000000;             /* svart text */
-        border-color: #e5e7eb;      /* lite ljus kant */
-        font-weight: 500;           /* gör texten lite tydligare */
+        background-color: #ffffff;
+        color: #000000;
+        border-color: #e5e7eb;
+        font-weight: 500;
     }
+
+    /* Toggle switches */
+    .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 24px;
+    }
+
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #4b5563;
+        transition: 0.3s;
+        border-radius: 9999px;
+    }
+
+    .toggle-slider::before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: #f9fafb;
+        transition: 0.3s;
+        border-radius: 9999px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+        background-color: #22c55e;
+    }
+
+    .toggle-switch input:checked + .toggle-slider::before {
+        transform: translateX(20px);
+    }
+
+    .toggle-switch input:focus + .toggle-slider {
+        box-shadow: 0 0 0 3px rgba(34,197,94,0.4);
+    }
+
     </style>
 </head>
 <body>
@@ -1190,9 +1254,12 @@ INDEX_TEMPLATE = """
           <input type="text" name="ip" id="ipInput" class="form-control form-control-sm"
                  placeholder="{{ t('MANUAL_PING_PLACEHOLDER') }}" required>
         </div>
-        <div class="form-check mr-2 mb-0">
-          <input class="form-check-input" type="checkbox" name="ipv6" id="ipv6Check">
-          <label class="form-check-label text-light" for="ipv6Check">IPv6</label>
+        <div class="d-flex align-items-center mr-2 mb-0">
+          <label class="toggle-switch mb-0">
+            <input type="checkbox" name="ipv6" id="ipv6Check">
+            <span class="toggle-slider"></span>
+          </label>
+          <label for="ipv6Check" class="mb-0 ml-2 text-light">IPv6</label>
         </div>
         <button type="submit" class="btn btn-outline-secondary btn-sm">{{ t("MANUAL_PING_BUTTON") }}</button>
       </form>
@@ -1778,6 +1845,58 @@ CONFIG_TEMPLATE = """
         border-radius: 12px;
         box-shadow: 0 10px 25px rgba(0,0,0,0.6);
     }
+
+    /* Toggle switches */
+    .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 24px;
+    }
+
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #4b5563;
+        transition: 0.3s;
+        border-radius: 9999px;
+    }
+
+    .toggle-slider::before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: #f9fafb;
+        transition: 0.3s;
+        border-radius: 9999px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+        background-color: #22c55e;
+    }
+
+    .toggle-switch input:checked + .toggle-slider::before {
+        transform: translateX(20px);
+    }
+
+    .toggle-switch input:focus + .toggle-slider {
+        box-shadow: 0 0 0 3px rgba(34,197,94,0.4);
+    }
+
     </style>
 </head>
 <body>
@@ -1858,10 +1977,11 @@ CONFIG_TEMPLATE = """
             </select>
         </div>
 
-        <div class="form-check mb-2">
-            <input class="form-check-input" type="checkbox" name="ipv6" id="ipv6check" {% if ipv6 %}checked{% endif %}>
-            <label class="form-check-label" for="ipv6check">
-                {{ t("CONFIG_IPV6_ENABLE") }}
+        <div class="d-flex align-items-center mb-2">
+            <span class="mr-2">{{ t("CONFIG_IPV6_ENABLE") }}</span>
+            <label class="toggle-switch mb-0">
+                <input type="checkbox" name="ipv6" id="ipv6check" {% if ipv6 %}checked{% endif %}>
+                <span class="toggle-slider"></span>
             </label>
         </div>
 
@@ -1870,10 +1990,11 @@ CONFIG_TEMPLATE = """
             <input type="number" name="scan_interval" class="form-control" value="{{ scan_interval }}" min="1" required>
         </div>
 
-        <div class="form-check mb-2">
-            <input class="form-check-input" type="checkbox" name="highlight_new" id="highlightCheck" {% if highlight_new %}checked{% endif %}>
-            <label class="form-check-label" for="highlightCheck">
-                {{ t("CONFIG_HIGHLIGHT_NEW") }}
+        <div class="d-flex align-items-center mb-2">
+            <span class="mr-2">{{ t("CONFIG_HIGHLIGHT_NEW") }}</span>
+            <label class="toggle-switch mb-0">
+                <input type="checkbox" name="highlight_new" id="highlightCheck" {% if highlight_new %}checked{% endif %}>
+                <span class="toggle-slider"></span>
             </label>
         </div>
 
