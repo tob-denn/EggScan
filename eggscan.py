@@ -151,7 +151,8 @@ TRANSLATIONS = {
         "NO": "Nej",
         "VERSION_LABEL": "Version",
 
-        # Index / Dashboard
+        
+               # Index / Dashboard
         "INDEX_TITLE": "EggScan",
         "LOGGED_IN_AS": "Inloggad som:",
         "MANUAL_PING_PLACEHOLDER": "Ange IP att testa",
@@ -175,7 +176,7 @@ TRANSLATIONS = {
         "TABLE_ALIAS": "Alias",
         "TABLE_PING": "Ping",
         "TABLE_MANUFACTURER": "Tillverkare",
-        "TABLE_STATUS": "Status",
+        "TABLE_LAST_SEEN": "Senast sedd",
         "TABLE_STATUS": "Status",
         "TABLE_ACTIONS": "Åtgärder",
         "ALIAS_NONE": "Inget alias",
