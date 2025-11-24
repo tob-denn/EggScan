@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.0.3] – 2025-11-24
+### Added
+- `last_seen_at` timestamp for each device.
+- New “Last Seen” column in the UI.
+
+### Changed
+- Offline devices now retain their last_seen_at timestamp (IP resets to "-" but last_seen_at remains).
+- Scan timestamps now use the system’s local time.
+
+### Fixed
+- Database migration for `last_seen_at` is now handled automatically **via the install script** on upgrade.
+- IPv6 cleanup properly removes IPv6 addresses when IPv6 discovery is disabled.
+
 ## [v1.0.2] – 2025-11-19
 ### Changed
 - Updated IP handling: device IP lists are now rebuilt on each scan, ensuring only addresses detected in the latest scan are stored.
