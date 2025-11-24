@@ -109,6 +109,7 @@ class Device(db.Model):
     manufacturer = db.Column(db.String(100), nullable=True)
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
     last_seen_scan = db.Column(db.String(36), nullable=True)
+    last_seen_at = db.Column(db.DateTime, nullable=True)  # <-- NY
     is_new = db.Column(db.Boolean, default=False)
 
 
@@ -174,6 +175,7 @@ TRANSLATIONS = {
         "TABLE_ALIAS": "Alias",
         "TABLE_PING": "Ping",
         "TABLE_MANUFACTURER": "Tillverkare",
+        "TABLE_STATUS": "Status",
         "TABLE_STATUS": "Status",
         "TABLE_ACTIONS": "Åtgärder",
         "ALIAS_NONE": "Inget alias",
@@ -262,6 +264,7 @@ TRANSLATIONS = {
         "FLASH_SUBNET_ID_INVALID": "Ogiltigt subnät-ID.",
         "FLASH_GUESSED_SUBNET_ADDED": "Gissat subnät {cidr} tillagt!",
         "FLASH_GUESSED_SUBNET_EXISTS": "Subnät {cidr} finns redan!",
+        "FLASH_SUBNET_DELETED": "Subnät {cidr} raderat!",
         "FLASH_SCAN_INTERVAL_INVALID": "Skanningsintervall måste vara ett positivt heltal.",
         "FLASH_SETTINGS_UPDATED": "Inställningar uppdaterade!",
     },
@@ -305,6 +308,7 @@ TRANSLATIONS = {
         "TABLE_ALIAS": "Alias",
         "TABLE_PING": "Ping",
         "TABLE_MANUFACTURER": "Manufacturer",
+        "TABLE_LAST_SEEN": "Last seen",
         "TABLE_STATUS": "Status",
         "TABLE_ACTIONS": "Actions",
         "ALIAS_NONE": "No alias",
@@ -389,6 +393,7 @@ TRANSLATIONS = {
         "FLASH_USER_DELETE_FAIL": "Could not delete user (not found or is admin).",
         "FLASH_SUBNET_ADDED": "Subnet {cidr} added!",
         "FLASH_SUBNET_EXISTS": "Subnet {cidr} already exists!",
+        "FLASH_SUBNET_DELETED": "Subnet {cidr} deleted!",
         "FLASH_SUBNET_NOT_FOUND": "Subnet could not be found.",
         "FLASH_SUBNET_ID_INVALID": "Invalid subnet ID.",
         "FLASH_GUESSED_SUBNET_ADDED": "Guessed subnet {cidr} added!",
@@ -511,7 +516,6 @@ def nmap_scan_and_save():
 
     # Här samlar vi *endast* IP:na som hittas i den här skanningen
     scan_ips_per_mac = {}
-    found_macs_this_scan = set()
 
     # ---- IPv4-skanning (nmap) ----
     for sn in subnets:
@@ -539,18 +543,18 @@ def nmap_scan_and_save():
                         if manufacturer:
                             dev.manufacturer = manufacturer
                         dev.last_seen_scan = current_scan_id
+                        dev.last_seen_at = datetime.datetime.now()
                     else:
                         new_dev = Device(
                             ip_address=host,
                             mac_address=mac,
                             manufacturer=manufacturer,
                             last_seen_scan=current_scan_id,
+                            last_seen_at=datetime.datetime.now(),
                             is_new=True
                         )
                         db.session.add(new_dev)
                         existing_devices[mac_lower] = new_dev
-
-                    found_macs_this_scan.add(mac_lower)
             else:
                 # IPv6-nät i SubNetwork ignoreras avsiktligt här (hanteras via neighbor discovery)
                 pass
@@ -576,18 +580,18 @@ def nmap_scan_and_save():
             if mac_lower in existing_devices:
                 dev = existing_devices[mac_lower]
                 dev.last_seen_scan = current_scan_id
+                dev.last_seen_at = datetime.datetime.now()
             else:
                 new_dev = Device(
                     ip_address=",".join(ipv6_list),
                     mac_address=mac_lower,
                     manufacturer=None,
                     last_seen_scan=current_scan_id,
+                    last_seen_at=datetime.datetime.now(),
                     is_new=True
                 )
                 db.session.add(new_dev)
                 existing_devices[mac_lower] = new_dev
-
-            found_macs_this_scan.add(mac_lower)
 
         db.session.commit()
 
@@ -596,7 +600,6 @@ def nmap_scan_and_save():
         if dev.last_seen_scan == current_scan_id:
             addr_set = scan_ips_per_mac.get(mac_lower, set())
             if addr_set:
-                # sort() bara för stabil, snygg ordning
                 dev.ip_address = ",".join(sorted(addr_set))
             else:
                 dev.ip_address = "-"
@@ -629,6 +632,7 @@ def nmap_scan_and_save():
         db.session.commit()
 
     set_setting("scan_status", "done")
+
 
 def run_periodic_scan():
     while True:
@@ -987,7 +991,7 @@ def config_eggscan():
                     cidr = sn.cidr
                     db.session.delete(sn)
                     db.session.commit()
-                    flash(tf("FLASH_SUBNET_ADDED", cidr=cidr), "success")
+                    flash(tf("FLASH_SUBNET_DELETED", cidr=cidr), "success")
                 else:
                     flash(t("FLASH_SUBNET_NOT_FOUND"), "warning")
             else:
@@ -1320,6 +1324,7 @@ INDEX_TEMPLATE = """
                 <th>{{ t("TABLE_ALIAS") }}</th>
                 <th>{{ t("TABLE_PING") }}</th>
                 <th>{{ t("TABLE_MANUFACTURER") }}</th>
+                <th>{{ t("TABLE_LAST_SEEN") }}</th>
                 <th>{{ t("TABLE_STATUS") }}</th>
                 <th>{{ t("TABLE_ACTIONS") }}</th>
             </tr>
@@ -1374,13 +1379,21 @@ INDEX_TEMPLATE = """
                         -
                     {% endif %}
                 </td>
-                <td class="align-middle">{{ dev.manufacturer or t("MANUFACTURER_UNKNOWN") }}</td>
-                <td class="align-middle">
-                    <span class="{{ status_class }}">{{ status_text }}</span>
-                    {% if dev.is_new %}
-                      <span class="badge badge-warning ml-1">new</span>
-                    {% endif %}
-                </td>
+                 <td class="align-middle">{{ dev.manufacturer or t("MANUFACTURER_UNKNOWN") }}</td>
+                 <td class="align-middle">
+                 {% if dev.last_seen_at %}
+                 {{ dev.last_seen_at.strftime("%Y-%m-%d %H:%M:%S") }}
+                 {% else %}
+                     -
+                  {% endif %}
+                 </td>
+                  <td class="align-middle">
+                   <span class="{{ status_class }}">{{ status_text }}</span>
+                   {% if dev.is_new %}
+                    <span class="badge badge-warning ml-1">new</span>
+                   {% endif %}
+                     </td>
+
                 <td class="align-middle">
                     {% if current_user.is_admin %}
                         <div class="d-flex">

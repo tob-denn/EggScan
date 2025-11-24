@@ -16,6 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 INSTALL_DIR="/opt/eggscan"
 VENV_DIR="$INSTALL_DIR/venv"
 SERVICE_FILE="/lib/systemd/system/eggscan.service"
+DB_PATH="$INSTALL_DIR/eggscan.db"
 
 echo "Installing from directory: $SCRIPT_DIR"
 echo "Install directory: $INSTALL_DIR"
@@ -40,9 +41,9 @@ echo "Updating package index..."
 check_dpkg_lock
 apt-get update -y
 
-echo "Installing system packages (python3, pip, venv, nmap, iproute2)..."
+echo "Installing system packages (python3, pip, venv, nmap, iproute2, sqlite3)..."
 check_dpkg_lock
-apt-get install -y python3 python3-pip python3-venv nmap iproute2
+apt-get install -y python3 python3-pip python3-venv nmap iproute2 sqlite3
 
 echo
 echo "System packages done."
@@ -124,7 +125,38 @@ fi
 echo "Application files copied."
 
 # ------------------------------------------------------------------------------
-# 6. Create systemd unit that uses the virtualenv Python
+# 6. Database migration (ensure last_seen_at column exists)
+# ------------------------------------------------------------------------------
+
+echo
+echo "Checking for existing EggScan database for migration..."
+
+if [ -f "$DB_PATH" ]; then
+    echo "Existing database found at $DB_PATH"
+
+    DEVICE_TABLE_EXISTS=$(sqlite3 "$DB_PATH" ".tables device" | grep -c '^device$' || true)
+
+    if [ "$DEVICE_TABLE_EXISTS" -eq 1 ]; then
+        echo "device table exists, checking for last_seen_at column..."
+
+        HAS_LAST_SEEN_COL=$(sqlite3 "$DB_PATH" "PRAGMA table_info(device);" | awk -F'|' '{print $2}' | grep -c '^last_seen_at$' || true)
+
+        if [ "$HAS_LAST_SEEN_COL" -eq 0 ]; then
+            echo "last_seen_at column is missing, applying migration..."
+            sqlite3 "$DB_PATH" "ALTER TABLE device ADD COLUMN last_seen_at DATETIME;"
+            echo "Migration done: last_seen_at column added to device table."
+        else
+            echo "Migration skipped: last_seen_at column already exists."
+        fi
+    else
+        echo "device table does not exist yet in $DB_PATH, skipping migration."
+    fi
+else
+    echo "No existing database found at $DB_PATH (fresh install), skipping DB migration."
+fi
+
+# ------------------------------------------------------------------------------
+# 7. Create systemd unit that uses the virtualenv Python
 # ------------------------------------------------------------------------------
 
 echo
