@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.0.4] – 2025-11-24
+### Fixed
+- Swedish translation updated: the “Last Seen” column header now shows “Senast sedd”.
+
 ## [v1.0.3] – 2025-11-24
 ### Added
 - `last_seen_at` timestamp for each device.
