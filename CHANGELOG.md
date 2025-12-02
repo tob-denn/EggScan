@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.1.0] – 2025-12-02
+### Added
+- New dashboard view with summary cards for device statistics (e.g. total devices, online/offline).
+- Manufacturer modal: you can now click the manufacturer field to review and edit vendor information directly in the UI when it is missing or unknown.
+
+### Changed
+- Improved device list layout so IP, MAC, manufacturer and last seen are shown more clearly on a single line per device.
+- Replaced the old global “Sort:” text with clearer per-column descriptions under IP, MAC, manufacturer, etc.
+- Scan status now shows which scan loop is currently running and when the next loop will run after changing the scan interval.
+- Better handling and display of devices with unknown or missing manufacturer information.
+- Internal cleanup in `eggscan.py` (removed leftover comments and unused code paths).
+
+### Fixed
+- Column widths and table layout so text is no longer cut off or wrapped in an ugly way.
+
 ## [v1.0.4] – 2025-11-24
 ### Fixed
 - Swedish translation updated: the “Last Seen” column header now shows “Senast sedd”.

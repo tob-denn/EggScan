@@ -109,14 +109,13 @@ class Device(db.Model):
     manufacturer = db.Column(db.String(100), nullable=True)
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
     last_seen_scan = db.Column(db.String(36), nullable=True)
-    last_seen_at = db.Column(db.DateTime, nullable=True)  # <-- NY
+    last_seen_at = db.Column(db.DateTime, nullable=True)
     is_new = db.Column(db.Boolean, default=False)
 
 
 class SubNetwork(db.Model):
-    """
-    Lagrar flera subnät (CIDR), t.ex. 192.168.0.0/24, 192.168.1.0/24 osv.
-    """
+    
+    
     id = db.Column(db.Integer, primary_key=True)
     cidr = db.Column(db.String(50), unique=True, nullable=False)
 
@@ -151,8 +150,7 @@ TRANSLATIONS = {
         "NO": "Nej",
         "VERSION_LABEL": "Version",
 
-        
-               # Index / Dashboard
+        # Index / Dashboard
         "INDEX_TITLE": "EggScan",
         "LOGGED_IN_AS": "Inloggad som:",
         "MANUAL_PING_PLACEHOLDER": "Ange IP att testa",
@@ -187,6 +185,23 @@ TRANSLATIONS = {
         "ALIAS_LABEL": "Alias",
         "CANCEL": "Avbryt",
         "ALIAS_SAVE": "Spara",
+        "VERSION_LABEL": "Version",
+
+        "STATS_ONLINE_TOTAL_LABEL": "Online av totalt",
+        "STATS_NEW_DEVICES_LABEL": "Nya enheter",
+        "STATUSBAR_ONLINE": "Online",
+        "STATUSBAR_OFFLINE": "Offline",
+        "STATUSBAR_TOTAL": "Totalt",
+        "STATUSBAR_NEW": "Nya enheter",
+        "STATUSBAR_LAST_SCAN": "Senaste skanning",
+        "STATUSBAR_IPV6": "IPv6",
+        "STATUSBAR_ON": "På",
+        "STATUSBAR_OFF": "Av",
+
+        # Manufacturer modal
+        "MANUFACTURER_MODAL_TITLE": "Uppdatera tillverkare",
+        "MANUFACTURER_LABEL": "Tillverkare",
+        "MANUFACTURER_SAVE": "Spara",
 
         # Setup
         "SETUP_TITLE": "Setup Admin",
@@ -268,7 +283,16 @@ TRANSLATIONS = {
         "FLASH_SUBNET_DELETED": "Subnät {cidr} raderat!",
         "FLASH_SCAN_INTERVAL_INVALID": "Skanningsintervall måste vara ett positivt heltal.",
         "FLASH_SETTINGS_UPDATED": "Inställningar uppdaterade!",
-    },
+
+        # Manufacturer flash
+        "FLASH_MANUFACTURER_ADMIN_ONLY": "Endast admin kan ändra tillverkare!",
+        "FLASH_MANUFACTURER_UPDATED": "Tillverkare uppdaterad!",
+
+	#scans
+	"CONFIG_SCAN_INTERVAL_HINT": "Ändras vid nästa skanning.",
+        "ACTIVE_SCAN_INTERVAL_LABEL": "Aktivt intervall just nu:",   
+
+ },
     "en": {
         # General
         "LANG_SV": "Swedish",
@@ -320,6 +344,24 @@ TRANSLATIONS = {
         "ALIAS_LABEL": "Alias",
         "CANCEL": "Cancel",
         "ALIAS_SAVE": "Save",
+        "VERSION_LABEL": "Version",
+
+        "STATS_ONLINE_TOTAL_LABEL": "Online out of total",
+        "STATS_NEW_DEVICES_LABEL": "New devices",
+
+        "STATUSBAR_ONLINE": "Online",
+        "STATUSBAR_OFFLINE": "Offline",
+        "STATUSBAR_TOTAL": "Total",
+        "STATUSBAR_NEW": "New devices",
+        "STATUSBAR_LAST_SCAN": "Last scan",
+        "STATUSBAR_IPV6": "IPv6",
+        "STATUSBAR_ON": "On",
+        "STATUSBAR_OFF": "Off",
+
+        # Manufacturer modal
+        "MANUFACTURER_MODAL_TITLE": "Update manufacturer",
+        "MANUFACTURER_LABEL": "Manufacturer",
+        "MANUFACTURER_SAVE": "Save",
 
         # Setup
         "SETUP_TITLE": "Setup Admin",
@@ -401,7 +443,17 @@ TRANSLATIONS = {
         "FLASH_GUESSED_SUBNET_EXISTS": "Subnet {cidr} already exists!",
         "FLASH_SCAN_INTERVAL_INVALID": "Scan interval must be a positive integer.",
         "FLASH_SETTINGS_UPDATED": "Settings updated!",
-    },
+
+        # Manufacturer flash
+        "FLASH_MANUFACTURER_ADMIN_ONLY": "Only admin can change manufacturer!",
+        "FLASH_MANUFACTURER_UPDATED": "Manufacturer updated!",
+	
+	#scans
+	"CONFIG_SCAN_INTERVAL_HINT": "Takes effect on next scan.",
+        "ACTIVE_SCAN_INTERVAL_LABEL": "Active interval right now:",
+
+   
+ },
 }
 
 
@@ -515,10 +567,8 @@ def nmap_scan_and_save():
     existing_devices = {d.mac_address.lower(): d for d in Device.query.all()}
     ipv6_enabled = (get_setting("ipv6_enabled", "false") == "true")
 
-    # Här samlar vi *endast* IP:na som hittas i den här skanningen
     scan_ips_per_mac = {}
 
-    # ---- IPv4-skanning (nmap) ----
     for sn in subnets:
         cidr = sn.cidr.strip()
         if not cidr:
@@ -534,7 +584,6 @@ def nmap_scan_and_save():
                     mac_lower = mac.lower()
                     manufacturer = info.get("vendor", {}).get(mac, None)
 
-                    # Lägg till IPv4-adressen i "denna skanning"-listan
                     if mac_lower not in scan_ips_per_mac:
                         scan_ips_per_mac[mac_lower] = set()
                     scan_ips_per_mac[mac_lower].add(host)
@@ -557,14 +606,12 @@ def nmap_scan_and_save():
                         db.session.add(new_dev)
                         existing_devices[mac_lower] = new_dev
             else:
-                # IPv6-nät i SubNetwork ignoreras avsiktligt här (hanteras via neighbor discovery)
                 pass
         except Exception as e:
             print(f"Fel vid scanning av subnät {cidr}: {e}")
 
     db.session.commit()
 
-    # ---- IPv6-skanning (neighbor discovery) ----
     if ipv6_enabled:
         v6_map = discover_ipv6_neighbors()
 
@@ -572,7 +619,6 @@ def nmap_scan_and_save():
             if not ipv6_list:
                 continue
 
-            # Lägg IPv6-adresser i "denna skanning"-listan
             if mac_lower not in scan_ips_per_mac:
                 scan_ips_per_mac[mac_lower] = set()
             for ip6 in ipv6_list:
@@ -596,23 +642,40 @@ def nmap_scan_and_save():
 
         db.session.commit()
 
-    # ---- Sätt ip_address baserat *bara* på denna skanning ----
     for mac_lower, dev in existing_devices.items():
         if dev.last_seen_scan == current_scan_id:
             addr_set = scan_ips_per_mac.get(mac_lower, set())
             if addr_set:
-                dev.ip_address = ",".join(sorted(addr_set))
+                addr_list = sorted(addr_set)
+
+                ipv4_addrs = []
+                ipv6_addrs = []
+
+                for addr in addr_list:
+                    try:
+                        ip_obj = ipaddress.ip_address(addr)
+                        if ip_obj.version == 4:
+                            ipv4_addrs.append(addr)
+                        else:
+                            ipv6_addrs.append(addr)
+                    except ValueError:
+                        continue
+
+                ordered = ipv4_addrs + ipv6_addrs
+
+                if ordered:
+                    dev.ip_address = ",".join(ordered)
+                else:
+                    dev.ip_address = "-"
             else:
                 dev.ip_address = "-"
     db.session.commit()
 
-    # ---- Markera offline-enheter (inte hittade i denna skanning) ----
     offline_devs = Device.query.filter(Device.last_seen_scan != current_scan_id).all()
     for d in offline_devs:
         d.ip_address = "-"
     db.session.commit()
 
-    # ---- Om IPv6 är avstängt: ta bort ev. IPv6-adresser (samma som din originalkod) ----
     if not ipv6_enabled:
         all_devs = Device.query.all()
         for d in all_devs:
@@ -632,6 +695,7 @@ def nmap_scan_and_save():
                     d.ip_address = "-"
         db.session.commit()
 
+    set_setting("last_scan_time", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     set_setting("scan_status", "done")
 
 
@@ -643,15 +707,19 @@ def run_periodic_scan():
                 interval_minutes = int(interval_str)
             except Exception:
                 interval_minutes = 5
+
+            set_setting("scan_interval_active", str(interval_minutes))
+
             nmap_scan_and_save()
+
         time.sleep(interval_minutes * 60)
+
 
 
 # ---------------------------
 #          ROUTES
 # ---------------------------
 
-from flask import session
 
 
 @app.route("/setup", methods=["GET", "POST"])
@@ -767,6 +835,18 @@ def index():
 
     devices = q.all()
 
+    total_devices = len(devices)
+    online_devices = 0
+    new_devices = 0
+
+    for dev in devices:
+        if dev.last_seen_scan == last_scan_id:
+            online_devices += 1
+        if dev.is_new:
+            new_devices += 1
+
+    offline_devices = total_devices - online_devices
+
     def none_str(x):
         return x if x else ""
 
@@ -794,6 +874,12 @@ def index():
         devices.sort(key=updated_key, reverse=(sort_dir == "desc"))
 
     lang = get_language()
+    ipv6_enabled = (get_setting("ipv6_enabled", "false") == "true")
+    last_scan_time = get_setting("last_scan_time", "")
+
+    configured_scan_interval = get_setting("scan_interval", "5")
+    active_scan_interval = get_setting("scan_interval_active", configured_scan_interval)
+
     return render_template_string(
         INDEX_TEMPLATE,
         devices=devices,
@@ -805,6 +891,14 @@ def index():
         sort_field=sort_field,
         sort_dir=sort_dir,
         highlight_new=highlight_new,
+        total_devices=total_devices,
+        online_devices=online_devices,
+        offline_devices=offline_devices,
+        new_devices=new_devices,
+        ipv6_enabled=ipv6_enabled,
+        last_scan_time=last_scan_time,
+        configured_scan_interval=configured_scan_interval,
+        active_scan_interval=active_scan_interval,
         t=t,
         lang=lang,
         version=APP_VERSION
@@ -845,6 +939,23 @@ def update_alias():
                 dev.is_new = False
             db.session.commit()
             flash(t("FLASH_ALIAS_UPDATED"), "success")
+    return redirect(url_for("index"))
+
+
+@app.route("/update_manufacturer", methods=["POST"])
+@login_required
+def update_manufacturer():
+    if not current_user.is_admin:
+        flash(t("FLASH_MANUFACTURER_ADMIN_ONLY"), "danger")
+        return redirect(url_for("index"))
+    mac = request.form.get("mac")
+    manufacturer = request.form.get("manufacturer", "").strip()
+    if mac:
+        dev = Device.query.filter_by(mac_address=mac).first()
+        if dev:
+            dev.manufacturer = manufacturer if manufacturer else None
+            db.session.commit()
+            flash(t("FLASH_MANUFACTURER_UPDATED"), "success")
     return redirect(url_for("index"))
 
 
@@ -1039,6 +1150,9 @@ def config_eggscan():
     ipv6_utils = get_setting("ipv6_utils", "")
     lang = get_language()
 
+    active_scan_interval = get_setting("scan_interval_active", scan_interval)
+
+
     return render_template_string(
         CONFIG_TEMPLATE,
         subnets=subnets,
@@ -1046,10 +1160,12 @@ def config_eggscan():
         scan_interval=scan_interval,
         highlight_new=highlight_new,
         ipv6_utils=ipv6_utils,
+        active_scan_interval=active_scan_interval,
         t=t,
         lang=lang,
         version=APP_VERSION
     )
+
 
 
 # ---------------------------
@@ -1068,6 +1184,11 @@ INDEX_TEMPLATE = """
         background: linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #111827 100%);
         color: #e5e7eb;
         min-height: 100vh;
+    }
+    @media (min-width: 1200px) {
+        .container {
+            max-width: 1500px;
+        }
     }
     .main-card {
         margin-top: 30px;
@@ -1099,7 +1220,6 @@ INDEX_TEMPLATE = """
         color: #ecfdf5;
         font-size: 0.8rem;
     }
-
     .status-badge-offline {
         display: inline-block;
         padding: 0.2rem 0.6rem;
@@ -1108,17 +1228,22 @@ INDEX_TEMPLATE = """
         color: #e5e7eb;
         font-size: 0.8rem;
     }
-
     .table-dark-header {
         background-color: #111827;
     }
-
     .table-dark-header th {
         background-color: #111827;
         border-color: #1f2933;
         color: #ffffff !important;
+        white-space: nowrap;
     }
-
+    .table-dark-header th a {
+        color: #a5b4fc !important;
+        text-decoration: none;
+    }
+    .table-dark-header th a:hover {
+        text-decoration: underline;
+    }
     .table-dark-body tbody tr {
         background-color: #020617;
         color: #e5e7eb;
@@ -1162,28 +1287,23 @@ INDEX_TEMPLATE = """
     .card-body {
         background-color: #020617;
     }
-
     .ip-modal-list-item {
         background-color: #ffffff;
         color: #000000;
         border-color: #e5e7eb;
         font-weight: 500;
     }
-
-    /* Toggle switches */
     .toggle-switch {
         position: relative;
         display: inline-block;
         width: 44px;
         height: 24px;
     }
-
     .toggle-switch input {
         opacity: 0;
         width: 0;
         height: 0;
     }
-
     .toggle-slider {
         position: absolute;
         cursor: pointer;
@@ -1195,7 +1315,6 @@ INDEX_TEMPLATE = """
         transition: 0.3s;
         border-radius: 9999px;
     }
-
     .toggle-slider::before {
         position: absolute;
         content: "";
@@ -1208,19 +1327,76 @@ INDEX_TEMPLATE = """
         border-radius: 9999px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.5);
     }
-
     .toggle-switch input:checked + .toggle-slider {
         background-color: #22c55e;
     }
-
     .toggle-switch input:checked + .toggle-slider::before {
         transform: translateX(20px);
     }
-
     .toggle-switch input:focus + .toggle-slider {
         box-shadow: 0 0 0 3px rgba(34,197,94,0.4);
     }
-
+    .stats-row {
+        margin-bottom: 15px;
+    }
+    .stat-card {
+        background-color: #020617;
+        border-radius: 10px;
+        border: 1px solid #1f2937;
+        padding: 8px 12px;
+        display: flex;
+        flex-direction: column;
+    }
+    .stat-label {
+        font-size: 0.75rem;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        color: #9ca3af;
+        margin-bottom: 2px;
+    }
+    .stat-value {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #e5e7eb;
+    }
+    .status-bar {
+        background-color: #020617;
+        border-radius: 8px;
+        border: 1px solid #1f2937;
+        padding: 6px 12px;
+        font-size: 0.85rem;
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        margin-bottom: 10px;
+        overflow-x: auto;
+    }
+    .status-item {
+        margin-right: 18px;
+        display: inline-flex;
+        align-items: center;
+        white-space: nowrap;
+    }
+    .status-dot-online,
+    .status-dot-offline,
+    .status-dot-new {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        display: inline-block;
+        margin-right: 6px;
+    }
+    .status-dot-online { background-color: #22c55e; }
+    .status-dot-offline { background-color: #ef4444; }
+    .status-dot-new { background-color: #facc15; }
+    .status-label {
+        color: #9ca3af;
+        margin-right: 4px;
+    }
+    .status-value {
+        color: #e5e7eb;
+        font-weight: 500;
+    }
     </style>
 </head>
 <body>
@@ -1297,22 +1473,94 @@ INDEX_TEMPLATE = """
 
       <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="text-light">
-          {{ t("SORT_LABEL") }}
-          <a class="text-info" href="?sort=ip&dir={% if sort_field=='ip' and sort_dir=='asc' %}desc{% else %}asc{% endif %}&filter={{filter_mode}}&search={{search_q}}">{{ t("SORT_IP") }}</a> |
-          <a class="text-info" href="?sort=mac&dir={% if sort_field=='mac' and sort_dir=='asc' %}desc{% else %}asc{% endif %}&filter={{filter_mode}}&search={{search_q}}">{{ t("SORT_MAC") }}</a> |
-          <a class="text-info" href="?sort=alias&dir={% if sort_field=='alias' and sort_dir=='asc' %}desc{% else %}asc{% endif %}&filter={{filter_mode}}&search={{search_q}}">{{ t("SORT_ALIAS") }}</a> |
-          <a class="text-info" href="?sort=manufacturer&dir={% if sort_field=='manufacturer' and sort_dir=='asc' %}desc{% else %}asc{% endif %}&filter={{filter_mode}}&search={{search_q}}">{{ t("SORT_MANUFACTURER") }}</a> |
-          <a class="text-info" href="?sort=updated&dir={% if sort_field=='updated' and sort_dir=='asc' %}desc{% else %}asc{% endif %}&filter={{filter_mode}}&search={{search_q}}">{{ t("SORT_UPDATED") }}</a>
         </div>
         <form method="POST" action="{{ url_for('force_scan') }}" class="mb-0">
           <button type="submit" class="btn btn-sm btn-primary">{{ t("SCAN_NOW") }}</button>
         </form>
       </div>
 
+      <div class="stats-row">
+        <div class="row">
+          <div class="col-md-6 col-sm-12 mb-2">
+            <div class="stat-card">
+              <div class="stat-label">{{ t("STATS_ONLINE_TOTAL_LABEL") }}</div>
+              <div class="stat-value">
+                {{ online_devices }} / {{ total_devices }}
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6 col-sm-12 mb-2">
+            <div class="stat-card">
+              <div class="stat-label">{{ t("STATS_NEW_DEVICES_LABEL") }}</div>
+              <div class="stat-value">
+                {{ new_devices }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="status-bar">
+        <div class="status-item">
+          <span class="status-dot-online"></span>
+          <span class="status-label">{{ t("STATUSBAR_ONLINE") }}:</span>
+          <span class="status-value">{{ online_devices }}</span>
+        </div>
+        <div class="status-item">
+          <span class="status-dot-offline"></span>
+          <span class="status-label">{{ t("STATUSBAR_OFFLINE") }}:</span>
+          <span class="status-value">{{ offline_devices }}</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">{{ t("STATUSBAR_TOTAL") }}:</span>
+          <span class="status-value">{{ total_devices }}</span>
+        </div>
+        <div class="status-item">
+          <span class="status-dot-new"></span>
+          <span class="status-label">{{ t("STATUSBAR_NEW") }}:</span>
+          <span class="status-value">{{ new_devices }}</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">{{ t("STATUSBAR_LAST_SCAN") }}:</span>
+          <span class="status-value">
+            {% if last_scan_time %}
+              {{ last_scan_time }}
+            {% else %}
+              -
+            {% endif %}
+          </span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">{{ t("STATUSBAR_IPV6") }}:</span>
+          <span class="status-value">
+            {% if ipv6_enabled %}
+              {{ t("STATUSBAR_ON") }}
+            {% else %}
+              {{ t("STATUSBAR_OFF") }}
+            {% endif %}
+          </span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">{{ t("CONFIG_SCAN_INTERVAL") }}</span>
+          <span class="status-value">
+            {% if active_scan_interval %}
+              {{ active_scan_interval }}
+            {% else %}
+              -
+            {% endif %}
+            {% if configured_scan_interval and configured_scan_interval != active_scan_interval %}
+              ({{ configured_scan_interval }})
+            {% endif %}
+          </span>
+        </div>
+
+
+      </div>
+
       {% if scan_status == "running" %}
       <div class="alert alert-info d-flex align-items-center" id="scan-info">
-          <strong>{{ t("SCAN_RUNNING") }}</strong>
-          <div class="spinner-border text-primary ml-auto" role="status" aria-hidden="true"></div>
+        <strong>{{ t("SCAN_RUNNING") }}</strong>
+        <div class="spinner-border text-primary ml-auto" role="status" aria-hidden="true"></div>
       </div>
       {% endif %}
 
@@ -1320,12 +1568,57 @@ INDEX_TEMPLATE = """
         <table class="table table-sm mb-0">
           <thead class="table-dark-header text-white">
             <tr>
-                <th>{{ t("TABLE_IP") }}</th>
-                <th>{{ t("TABLE_MAC") }}</th>
-                <th>{{ t("TABLE_ALIAS") }}</th>
+                <th>
+                  <a href="?sort=ip&dir={% if sort_field=='ip' and sort_dir=='asc' %}desc{% else %}asc{% endif %}&filter={{filter_mode}}&search={{search_q}}">
+                    {{ t("TABLE_IP") }}
+                    {% if sort_field == 'ip' %}
+                      {% if sort_dir == 'asc' %} ▲{% else %} ▼{% endif %}
+                    {% else %}
+                      ↕
+                    {% endif %}
+                  </a>
+                </th>
+                <th>
+                  <a href="?sort=mac&dir={% if sort_field=='mac' and sort_dir=='asc' %}desc{% else %}asc{% endif %}&filter={{filter_mode}}&search={{search_q}}">
+                    {{ t("TABLE_MAC") }}
+                    {% if sort_field == 'mac' %}
+                      {% if sort_dir == 'asc' %} ▲{% else %} ▼{% endif %}
+                    {% else %}
+                      ↕
+                    {% endif %}
+                  </a>
+                </th>
+                <th>
+                  <a href="?sort=alias&dir={% if sort_field=='alias' and sort_dir=='asc' %}desc{% else %}asc{% endif %}&filter={{filter_mode}}&search={{search_q}}">
+                    {{ t("TABLE_ALIAS") }}
+                    {% if sort_field == 'alias' %}
+                      {% if sort_dir == 'asc' %} ▲{% else %} ▼{% endif %}
+                    {% else %}
+                      ↕
+                    {% endif %}
+                  </a>
+                </th>
                 <th>{{ t("TABLE_PING") }}</th>
-                <th>{{ t("TABLE_MANUFACTURER") }}</th>
-                <th>{{ t("TABLE_LAST_SEEN") }}</th>
+                <th>
+                  <a href="?sort=manufacturer&dir={% if sort_field=='manufacturer' and sort_dir=='asc' %}desc{% else %}asc{% endif %}&filter={{filter_mode}}&search={{search_q}}">
+                    {{ t("TABLE_MANUFACTURER") }}
+                    {% if sort_field == 'manufacturer' %}
+                      {% if sort_dir == 'asc' %} ▲{% else %} ▼{% endif %}
+                    {% else %}
+                      ↕
+                    {% endif %}
+                  </a>
+                </th>
+                <th>
+                  <a href="?sort=updated&dir={% if sort_field=='updated' and sort_dir=='asc' %}desc{% else %}asc{% endif %}&filter={{filter_mode}}&search={{search_q}}">
+                    {{ t("TABLE_LAST_SEEN") }}
+                    {% if sort_field == 'updated' %}
+                      {% if sort_dir == 'asc' %} ▲{% else %} ▼{% endif %}
+                    {% else %}
+                      ↕
+                    {% endif %}
+                  </a>
+                </th>
                 <th>{{ t("TABLE_STATUS") }}</th>
                 <th>{{ t("TABLE_ACTIONS") }}</th>
             </tr>
@@ -1380,21 +1673,28 @@ INDEX_TEMPLATE = """
                         -
                     {% endif %}
                 </td>
-                 <td class="align-middle">{{ dev.manufacturer or t("MANUFACTURER_UNKNOWN") }}</td>
-                 <td class="align-middle">
+                <td class="align-middle">
+                  <a href="#" data-toggle="modal" data-target="#manufacturerModal{{ dev.id }}">
+                    {% if dev.manufacturer %}
+                      {{ dev.manufacturer }}
+                    {% else %}
+                      {{ t("MANUFACTURER_UNKNOWN") }}
+                    {% endif %}
+                  </a>
+                </td>
+                <td class="align-middle">
                  {% if dev.last_seen_at %}
-                 {{ dev.last_seen_at.strftime("%Y-%m-%d %H:%M:%S") }}
+                   {{ dev.last_seen_at.strftime("%Y-%m-%d %H:%M:%S") }}
                  {% else %}
-                     -
-                  {% endif %}
-                 </td>
-                  <td class="align-middle">
+                   -
+                 {% endif %}
+                </td>
+                <td class="align-middle">
                    <span class="{{ status_class }}">{{ status_text }}</span>
                    {% if dev.is_new %}
-                    <span class="badge badge-warning ml-1">new</span>
+                     <span class="badge badge-warning ml-1">new</span>
                    {% endif %}
-                     </td>
-
+                </td>
                 <td class="align-middle">
                     {% if current_user.is_admin %}
                         <div class="d-flex">
@@ -1440,6 +1740,41 @@ INDEX_TEMPLATE = """
               </div>
             </div>
 
+            <div class="modal fade" id="manufacturerModal{{ dev.id }}" tabindex="-1" role="dialog" aria-labelledby="manufacturerModalLabel{{ dev.id }}" aria-hidden="true">
+              <div class="modal-dialog" role="document">
+                <form method="POST" action="{{ url_for('update_manufacturer') }}">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title text-dark" id="manufacturerModalLabel{{ dev.id }}">
+                        {{ t("MANUFACTURER_MODAL_TITLE") }}
+                      </h5>
+                      <button type="button" class="close" data-dismiss="modal" aria-label="Stäng">
+                        <span aria-hidden="true">&times;</span>
+                      </button>
+                    </div>
+                    <div class="modal-body">
+                      <input type="hidden" name="mac" value="{{ dev.mac_address }}">
+                      <div class="form-group">
+                        <label for="manufacturerInput{{ dev.id }}">{{ t("MANUFACTURER_LABEL") }}</label>
+                        <input
+                          type="text"
+                          class="form-control text-dark"
+                          id="manufacturerInput{{ dev.id }}"
+                          name="manufacturer"
+                          value="{{ dev.manufacturer or '' }}"
+                          placeholder="{{ t('MANUFACTURER_LABEL') }}"
+                        >
+                      </div>
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ t("CANCEL") }}</button>
+                      <button type="submit" class="btn btn-primary">{{ t("MANUFACTURER_SAVE") }}</button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+
             {% if dev.ip_address and dev.ip_address != "-" %}
             <div class="modal fade" id="ipModal{{ dev.id }}" tabindex="-1" role="dialog" aria-labelledby="ipModalLabel{{ dev.id }}" aria-hidden="true">
               <div class="modal-dialog" role="document">
@@ -1456,9 +1791,9 @@ INDEX_TEMPLATE = """
                     {% set all_ips = dev.ip_address.split(",") %}
                     <ul class="list-group">
                       {% for addr in all_ips %}
-<li class="list-group-item ip-modal-list-item">
-  {{ addr | trim }}
-</li>
+                        <li class="list-group-item ip-modal-list-item">
+                          {{ addr | trim }}
+                        </li>
                       {% endfor %}
                     </ul>
                   </div>
@@ -1519,6 +1854,7 @@ INDEX_TEMPLATE = """
 </body>
 </html>
 """
+
 
 SETUP_TEMPLATE = """
 <!DOCTYPE html>
@@ -2000,9 +2336,17 @@ CONFIG_TEMPLATE = """
         </div>
 
         <div class="form-group mb-2">
-            <label>{{ t("CONFIG_SCAN_INTERVAL") }}</label>
+            <label>
+              {{ t("CONFIG_SCAN_INTERVAL") }}
+              <small class="text-muted">({{ t("CONFIG_SCAN_INTERVAL_HINT") }})</small>
+            </label>
             <input type="number" name="scan_interval" class="form-control" value="{{ scan_interval }}" min="1" required>
+            <small class="form-text text-muted">
+              {{ t("ACTIVE_SCAN_INTERVAL_LABEL") }}
+              {% if active_scan_interval %}{{ active_scan_interval }}{% else %}-{% endif %}
+            </small>
         </div>
+
 
         <div class="d-flex align-items-center mb-2">
             <span class="mr-2">{{ t("CONFIG_HIGHLIGHT_NEW") }}</span>
